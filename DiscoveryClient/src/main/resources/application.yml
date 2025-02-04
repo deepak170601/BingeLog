@@ -1,0 +1,30 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: ApiGateway
+
+  cloud:
+    gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods: '*'
+            allowedHeaders: '*'
+      routes:
+        - id: UserService
+          uri: lb://UserService
+          predicates:
+            - Path=/api/users/**
+        - id: UserService
+          uri: lb://UserService
+          predicates:
+            - Path=/api/sms/**
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
