@@ -4,20 +4,39 @@ eureka:
       defaultZone: http://localhost:8761/eureka/
   instance:
     prefer-ip-address: true
-
-
 spring:
+  application:
+    name: UserService
+
   datasource:
-    url: jdbc:h2:mem:mydb
-    username: sa
-    password: password
-    driverClassName: org.h2.Driver
+    url: jdbc:postgresql://riamaajnfhbdpanckxhx.supabase.co:5432/postgres
+    username: postgres
+    password: Deepak#961800
+    driver-class-name: org.postgresql.Driver
+
   jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: update
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-    defer-datasource-initialization: true
 
+supabase:
+  url: https://riamaajnfhbdpanckxhx.supabase.co
+  api-key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJpYW1hYWpuZmhiZHBhbmNreGh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzg3MzY0MTMsImV4cCI6MjA1NDMxMjQxM30.CJfW-qwtoc43TzdGVOUaPtr6h_9D7mVHTkOu92mCMFI
+  jwt-secret: sXOy3mmkRaGRP3Gzd8nnkV9mi/jsNv86RjtbxBq2xW4KlkGuXoxgml5brdvRIpoHQ+MXN3CET8pyScl6GO1TSg==
+
+#
+#spring:
+#  datasource:
+#    url: jdbc:h2:mem:mydb
+#    username: sa
+#    password: password
+#    driverClassName: org.h2.Driver
+#  jpa:
+#    hibernate:
+#      ddl-auto: update
+#    show-sql: true
+#    properties:
+#      hibernate:
+#        format_sql: true
+#    defer-datasource-initialization: true
+#

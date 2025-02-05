@@ -1,11 +1,12 @@
 package com.tracker.UserService.service.impl;
 
-
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tracker.UserService.exception.UserAlreadyExistsException;
 import com.tracker.UserService.exception.UserNotFoundException;
 import com.tracker.UserService.mapper.UserMapper;
 import com.tracker.UserService.model.User;
-import com.tracker.UserService.repository.UserRepository;
+import com.tracker.UserService.service.SupabaseService;
 import com.tracker.UserService.service.UserService;
 import com.tracker.UserService.user.request.RegisterUserRequest;
 import com.tracker.UserService.user.request.UpdateUserRequest;
@@ -15,42 +16,49 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.http.*;
 
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class UserServiceImpl implements UserService {
 
-    private final UserRepository userRepository;
+    private final SupabaseService supabaseService;
     private final UserMapper userMapper;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     @Transactional
     public UserResponse register(RegisterUserRequest request) {
         log.info("Attempting to register user with email: {}", request.getEmail());
 
-        if (userRepository.existsByEmail(request.getEmail())) {
+        // Check if user already exists in Supabase
+        if (doesUserExistByEmail(request.getEmail())) {
             log.warn("Email already exists: {}", request.getEmail());
             throw new UserAlreadyExistsException("Email already exists");
         }
 
-
-
-        User user = userMapper.toEntity(request);
         // Securely encode the password before storing
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        // Set default role if not provided
+        String encodedPassword = passwordEncoder.encode(request.getPassword());
 
-        // Set verification status to false by default
+        // Prepare user data for Supabase
+        Map<String, Object> userData = new HashMap<>();
+        userData.put("id", UUID.randomUUID().toString());
+        userData.put("email", request.getEmail());
+        userData.put("password", encodedPassword);
 
+        // Save user to Supabase
+        JsonNode response = supabaseService.postToSupabase("users", userData);
 
-        User savedUser = userRepository.save(user);
-        log.info("User registered successfully with ID: {}", savedUser.getId());
+        if (response == null || response.isEmpty()) {
+            throw new RuntimeException("Failed to register user in Supabase");
+        }
 
-        return userMapper.toResponse(savedUser);
+        log.info("User registered successfully in Supabase");
+        return userMapper.toResponse(objectMapper.convertValue(userData, User.class));
     }
 
     @Override
@@ -58,28 +66,39 @@ public class UserServiceImpl implements UserService {
     public UserResponse updateProfile(UUID userId, UpdateUserRequest request) {
         log.info("Updating profile for user ID: {}", userId);
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        // Fetch user from Supabase
+        JsonNode userJson = supabaseService.fetchFromSupabase("users", "id", userId.toString());
 
-        if (!user.getEmail().equals(request.getEmail()) && userRepository.existsByEmail(request.getEmail())) {
+        if (userJson == null || userJson.isEmpty()) {
+            throw new UserNotFoundException("User not found in Supabase");
+        }
+
+        // Convert to User object
+        User user = objectMapper.convertValue(userJson.get(0), User.class);
+
+        // Update email only if it's not already taken
+        if (!user.getEmail().equals(request.getEmail()) && doesUserExistByEmail(request.getEmail())) {
             log.warn("Email already exists: {}", request.getEmail());
             throw new UserAlreadyExistsException("Email already exists");
         }
 
-
-
-        log.debug("Update request details: {}", request);
         userMapper.updateEntity(user, request);
 
-//         If password is being updated, encode it
+        // Encode password if it's being updated
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
             user.setPassword(passwordEncoder.encode(request.getPassword()));
         }
 
-        User updatedUser = userRepository.save(user);
-        log.info("User profile updated successfully for ID: {}", updatedUser.getId());
+        // Prepare update data
+        Map<String, Object> updatedData = new HashMap<>();
+        updatedData.put("email", user.getEmail());
+        updatedData.put("password", user.getPassword());
 
-        return userMapper.toResponse(updatedUser);
+        // Update user in Supabase
+        supabaseService.updateInSupabase("users", "id", userId.toString(), updatedData);
+
+        log.info("User profile updated successfully in Supabase");
+        return userMapper.toResponse(user);
     }
 
     @Override
@@ -87,9 +106,13 @@ public class UserServiceImpl implements UserService {
     public UserResponse findUserById(UUID userId) {
         log.info("Retrieving user by ID: {}", userId);
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        JsonNode userJson = supabaseService.fetchFromSupabase("users", "id", userId.toString());
 
+        if (userJson == null || userJson.isEmpty()) {
+            throw new UserNotFoundException("User not found in Supabase");
+        }
+
+        User user = objectMapper.convertValue(userJson.get(0), User.class);
         return userMapper.toResponse(user);
     }
 
@@ -97,6 +120,12 @@ public class UserServiceImpl implements UserService {
     @Transactional(readOnly = true)
     public boolean doesUserExist(UUID userId) {
         log.info("Checking existence for user ID: {}", userId);
-        return userRepository.existsById(userId);
+        JsonNode userJson = supabaseService.fetchFromSupabase("users", "id", userId.toString());
+        return userJson != null && !userJson.isEmpty();
+    }
+
+    private boolean doesUserExistByEmail(String email) {
+        JsonNode userJson = supabaseService.fetchFromSupabase("users", "email", email);
+        return userJson != null && !userJson.isEmpty();
     }
 }

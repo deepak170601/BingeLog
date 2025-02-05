@@ -12,9 +12,7 @@ import java.util.UUID;
 
 public class UserDTO {
     private UUID id;
-    private String fullName;
     private String email;
-    private List<UUID> ratings;
-    private List<UUID> favorites;
+
 
 }

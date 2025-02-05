@@ -18,14 +18,12 @@ public class UserMapper {
         User user = new User();
         user.setEmail(request.getEmail());
         user.setPassword(request.getPassword()); // Hashing is expected in the service layer
-        user.setFullName(request.getFullName());
         return user;
     }
 
     public void updateEntity(User user, UpdateUserRequest request) {
-        user.setFullName(request.getFullName());user.setEmail(request.getEmail());
-        user.setRatings(request.getRatings());
-        user.setFavorites(request.getFavorites());
+        user.setEmail(request.getEmail());
+
     }
 
     public UserResponse toResponse(User user) {
@@ -36,9 +34,7 @@ public class UserMapper {
 
         response.setId(user.getId());
         response.setEmail(user.getEmail());
-        response.setFullName(user.getFullName());
-        response.setRatings(user.getRatings());
-        response.setFavorites(user.getFavorites());
+
         return response;
     }
 }

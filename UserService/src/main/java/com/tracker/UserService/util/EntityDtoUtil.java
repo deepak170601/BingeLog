@@ -11,10 +11,7 @@ public class EntityDtoUtil {
 
         return new UserDTO(
                 user.getId(),
-                user.getFullName(),
-                user.getEmail(),
-                user.getRatings(),
-                user.getFavorites()
+                user.getEmail()
         );
     }
 
