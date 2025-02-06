@@ -1,5 +1,6 @@
 package com.tracker.UserService.config;
 
+import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,9 +20,11 @@ public class SupabaseConfig {
     @Value("${spring.datasource.password}")
     private String dbPassword;
 
+    @Getter
     @Value("${supabase.url}")
     private String supabaseUrl;
 
+    @Getter
     @Value("${supabase.api-key}")
     private String supabaseApiKey;
 
@@ -38,15 +41,4 @@ public class SupabaseConfig {
                 .build();
     }
 
-    public String getSupabaseUrl() {
-        return supabaseUrl;
-    }
-
-    public String getSupabaseApiKey() {
-        return supabaseApiKey;
-    }
-
-    public String getSupabaseJwtSecret() {
-        return supabaseJwtSecret;
-    }
 }
